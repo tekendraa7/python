@@ -1,4 +1,11 @@
-num1 = int(input ("Enter first number: "))
-num2 = int(input("Enter second number: "))
+a = int(input ("Enter first number: "))
+b = int(input("Enter second number: "))
 
-print("The sum is : ",num1 + num2)
+if a > b :
+    print(a, " is the greatest. ")
+
+elif a < b :
+    print(b, " is the greatest. ")
+
+else : 
+    print(a, "and", b, "are equal.")    
