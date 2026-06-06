@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FlowCare — Hospital Queue Management Platform</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+<style>
+/* ── CSS Variables: Light & Dark ── */
+:root {
+  --bg:          #f9f9f8;
+  --s1:          #ffffff;
+  --s2:          #f2f2f0;
+  --s3:          #e8e8e4;
+  --border:      rgba(0,0,0,0.12);
+  --border-md:   rgba(0,0,0,0.22);
+  --tp:          #111111;
+  --ts:          #555555;
+  --tt:          #999999;
+  --c-info-bg:   #e6f0fb;
+  --c-info-tx:   #1458a0;
+  --c-info-bd:   rgba(20,88,160,0.35);
+  --c-suc-bg:    #eaf2de;
+  --c-suc-tx:    #3a6a10;
+  --c-suc-bd:    rgba(58,106,16,0.35);
+  --c-warn-bg:   #faeeda;
+  --c-warn-tx:   #834e0a;
+  --c-warn-bd:   rgba(131,78,10,0.35);
+  --c-err-bg:    #fcebeb;
+  --c-err-tx:    #a02b2b;
+  --c-err-bd:    rgba(160,43,43,0.35);
+  --teal:        #1D9E75;
+  --blue:        #378ADD;
+  --amber:       #EF9F27;
+  --red:         #E24B4A;
+  --green:       #639922;
+  --r-md:        8px;
+  --r-lg:        12px;
+  --font:        -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --mono:        'SF Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg:          #111111;
+    --s1:          #1a1a1a;
+    --s2:          #222222;
+    --s3:          #2c2c2c;
+    --border:      rgba(255,255,255,0.12);
+    --border-md:   rgba(255,255,255,0.22);
+    --tp:          #f0f0f0;
+    --ts:          #999999;
+    --tt:          #555555;
+    --c-info-bg:   #0a1e35;
+    --c-info-tx:   #82b5eb;
+    --c-info-bd:   rgba(130,181,235,0.3);
+    --c-suc-bg:    #0d2208;
+    --c-suc-tx:    #93c055;
+    --c-suc-bd:    rgba(147,192,85,0.3);
+    --c-warn-bg:   #281800;
+    --c-warn-tx:   #f5c470;
+    --c-warn-bd:   rgba(245,196,112,0.3);
+    --c-err-bg:    #280a0a;
+    --c-err-tx:    #ed9090;
+    --c-err-bd:    rgba(237,144,144,0.3);
+  }
+}
+
+/* ── Reset & Base ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--tp);
+  font-size: 15px;
+  line-height: 1.5;
+  min-height: 100vh;
+}
+p { margin: 0; }
+h1,h2,h3 { font-weight: 500; }
+table { border-collapse: collapse; }
+button { font-family: var(--font); }
+
+/* ── Layout ── */
+.wrap     { max-width: 900px; margin: 0 auto; padding: 24px 20px 48px; }
+.g2       { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.g4       { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+.g5       { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; }
+
+/* ── Components ── */
+.card {
+  background: var(--s1);
+  border: 0.5px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 16px 20px;
+}
+.metric {
+  background: var(--s2);
+  border-radius: var(--r-md);
+  padding: 14px 16px;
+}
+.pill {
+  display: inline-block;
+  background: var(--s2);
+  border: 0.5px solid var(--border);
+  border-radius: 100px;
+  padding: 3px 10px;
+  font-size: 12px;
+  color: var(--ts);
+}
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: var(--r-md);
+  font-size: 12px;
+  font-weight: 500;
+}
+.sep { border: none; border-top: 0.5px solid var(--border); margin: 14px 0; }
+
+/* ── Navigation tabs ── */
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 22px; }
+.tab {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 15px;
+  background: transparent;
+  border: 0.5px solid var(--border-md);
+  border-radius: var(--r-md);
+  font-size: 13px;
+  color: var(--ts);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.tab:hover { background: var(--s2); }
+.tab.sel   { background: var(--c-info-bg); color: var(--c-info-tx); border-color: var(--c-info-bd); font-weight: 500; }
+
+/* ── Views ── */
+.view { display: none; }
+.view.active { display: block; }
+
+/* ── Utility colors ── */
+.tx-info  { color: var(--c-info-tx); }
+.tx-suc   { color: var(--c-suc-tx);  }
+.tx-warn  { color: var(--c-warn-tx); }
+.tx-err   { color: var(--c-err-tx);  }
+.tx-muted { color: var(--ts); }
+.mono     { font-family: var(--mono); }
+
+/* ── Site header ── */
+.site-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 20px;
+  background: var(--s1);
+  border-bottom: 0.5px solid var(--border);
+  position: sticky; top: 0; z-index: 100;
+}
+.logo {
+  display: flex; align-items: center; gap: 10px;
+}
+.logo-icon {
+  width: 32px; height: 32px;
+  background: var(--c-info-bg);
+  border-radius: var(--r-md);
+  display: flex; align-items: center; justify-content: center;
+}
+.logo-name { font-size: 17px; font-weight: 500; }
+.status-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--teal); display: inline-block; margin-right: 5px;
+}
+
+/* ── Dept load bar ── */
+.dept-row {
+  display: grid;
+  grid-template-columns: 145px 1fr 52px 62px;
+  gap: 12px;
+  align-items: center;
+  padding: 9px 0;
+  border-bottom: 0.5px solid var(--border);
+}
+.load-track {
+  height: 5px; background: var(--s2); border-radius: 3px; overflow: hidden;
+}
+.load-fill {
+  height: 100%; border-radius: 3px; transition: width 0.8s ease;
+}
+
+/* ── Queue list ── */
+.q-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 0; border-bottom: 0.5px solid var(--border);
+}
+.q-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+
+/* ── Journey ── */
+.j-step { display: flex; align-items: flex-start; gap: 12px; }
+.j-dot-wrap { display: flex; flex-direction: column; align-items: center; flex-shrink: 0; }
+.j-circle {
+  width: 22px; height: 22px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 500; border: 0.5px solid var(--border);
+  background: var(--s2); color: var(--tt);
+}
+.j-line { width: 1px; height: 22px; background: var(--border); margin: 3px 0; }
+.j-done .j-circle { background: var(--c-suc-bg); color: var(--c-suc-tx); border-color: var(--c-suc-bd); }
+.j-active .j-circle { background: var(--c-info-bg); color: var(--c-info-tx); border-color: var(--c-info-bd); }
+.j-done .j-line { background: var(--c-suc-bd); }
+.j-content { padding-top: 3px; padding-bottom: 18px; }
+
+/* ── Notification row ── */
+.notif { display: flex; gap: 10px; align-items: flex-start; }
+.notif-dot { width: 7px; height: 7px; border-radius: 50%; margin-top: 5px; flex-shrink: 0; }
+
+/* ── Alert box ── */
+.alert { display: flex; gap: 10px; padding: 11px 14px; border-radius: var(--r-md); margin-bottom: 10px; }
+.alert-warn { background: var(--c-warn-bg); }
+.alert-info  { background: var(--c-info-bg); }
+.alert-suc   { background: var(--c-suc-bg);  }
+
+/* ── Responsive ── */
+@media (max-width: 620px) {
+  .g2 { grid-template-columns: 1fr; }
+  .g4 { grid-template-columns: 1fr 1fr; }
+  .dept-row { grid-template-columns: 110px 1fr 48px 54px; gap: 8px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ════════════ SITE HEADER ════════════ -->
+<header class="site-header">
+  <div class="logo">
+    <div class="logo-icon">
+      <i class="ti ti-activity" style="font-size:18px;color:var(--c-info-tx);" aria-hidden="true"></i>
+    </div>
+    <span class="logo-name">FlowCare</span>
+    <span style="font-size:12px;color:var(--ts);margin-left:10px;display:none;" id="hdr-sub">Seti Provincial Hospital · Pilot</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+    <div style="display:flex;align-items:center;">
+      <span class="status-dot"></span>
+      <span style="font-size:12px;color:var(--c-suc-tx);">Operational</span>
+    </div>
+    <span style="font-size:12px;color:var(--tt);">Apache 2.0 · Open Source</span>
+  </div>
+</header>
+
+<!-- ════════════ MAIN CONTENT ════════════ -->
+<main class="wrap">
+
+  <!-- Navigation -->
+  <nav class="tabs" role="tablist" aria-label="FlowCare portal views">
+    <button class="tab sel" role="tab" aria-selected="true"  id="tab-overview" onclick="show('overview')"><i class="ti ti-layout-dashboard" aria-hidden="true"></i> Platform</button>
+    <button class="tab"     role="tab" aria-selected="false" id="tab-patient"  onclick="show('patient')"><i class="ti ti-user" aria-hidden="true"></i> Patient</button>
+    <button class="tab"     role="tab" aria-selected="false" id="tab-doctor"   onclick="show('doctor')"><i class="ti ti-stethoscope" aria-hidden="true"></i> Doctor</button>
+    <button class="tab"     role="tab" aria-selected="false" id="tab-admin"    onclick="show('admin')"><i class="ti ti-building" aria-hidden="true"></i> Admin</button>
+    <button class="tab"     role="tab" aria-selected="false" id="tab-gov"      onclick="show('gov')"><i class="ti ti-map" aria-hidden="true"></i> Province</button>
+  </nav>
+
+  <!-- ══ VIEW 1: PLATFORM OVERVIEW ══ -->
+  <section id="view-overview" class="view active" role="tabpanel" aria-labelledby="tab-overview">
+
+    <div class="g4" style="margin-bottom:18px;">
+      <div class="metric">
+        <p style="font-size:12px;color:var(--ts);margin-bottom:4px;">Patients today</p>
+        <p class="mono" style="font-size:26px;font-weight:500;" id="ov-total">312</p>
+      </div>
+      <div class="metric">
+        <p style="font-size:12px;color:var(--ts);margin-bottom:4px;">Wait reduced by</p>
+        <p class="mono" style="font-size:26px;font-weight:500;" class="tx-suc">62%</p>
+      </div>
+      <div class="metric">
+        <p style="font-size:12px;color:var(--ts);margin-bottom:4px;">Hospitals online</p>
+        <p class="mono" style="font-size:26px;font-weight:500;color:var(--c-info-tx);">5 / 7</p>
+      </div>
+      <div class="metric">
+        <p style="font-size:12px;color:var(--ts);margin-bottom:4px;">Market size 2025</p>
+        <p class="mono" style="font-size:26px;font-weight:500;color:var(--c-warn-tx);">$740M</p>
+      </div>
+    </div>
+
+    <div class="g2" style="margin-bottom:18px;">
+      <div class="card" style="border-color:var(--c-err-bd);">
+        <div style="display:flex;align-items:center;gap:7px;margin-bottom:12px;">
+          <i class="ti ti-x" style="color:var(--c-err-tx);font-size:15px;" aria-hidden="true"></i>
+          <span style="font-size:13px;font-weight:500;color:var(--c-err-tx);">Without FlowCare</span>
+        </div>
+        <table style="width:100%;font-size:13px;">
+          <tr><td style="color:var(--ts);padding:7px 0;border-bottom:0.5px solid var(--border);">OPD queue</td><td style="text-align:right;color:var(--c-err-tx);">30–90 min wait</td></tr>
+          <tr><td style="color:var(--ts);padding:7px 0;border-bottom:0.5px solid var(--border);">Lab sample</td><td style="text-align:right;color:var(--c-err-tx);">Separate manual token</td></tr>
+          <tr><td style="color:var(--ts);padding:7px 0;border-bottom:0.5px solid var(--border);">Patient experience</td><td style="text-align:right;color:var(--c-err-tx);">Standing, uncertain</td></tr>
+          <tr><td style="color:var(--ts);padding:7px 0;border-bottom:0.5px solid var(--border);">Admin visibility</td><td style="text-align:right;color:var(--c-err-tx);">Zero real-time data</td></tr>
+          <tr><td style="color:var(--ts);padding:7px 0;">Govt oversight</td><td style="text-align:right;color:var(--c-err-tx);">None across hospitals</td></tr>
+        </table>
+      </div>
+      <div class="card" style="border-color:var(--c-suc-bd);">
+        <div style="display:flex;align-items:center;gap:7px;margin-bottom:12px;">
+          <i class="ti ti-check" style="color:var(--c-suc-tx);font-size:15px;" aria-hidden="true"></i>
+          <span style="font-size:13px;font-weight:500;color:var(--c-suc-tx);">With FlowCare</span>
+        </div>
+        <table style="width:100%;font-size:13px;">
+          <tr><td style="color:var(--ts);padding:7px 0;border-bottom:0.5px solid var(--border);">OPD queue</td><td style="text-align:right;color:var(--c-suc-tx);">Under 5 min</td></tr>
+          <tr><td style="color:var(--ts);padding:7px 0;border-bottom:0.5px solid var(--border);">Lab sample</td><td style="text-align:right;color:var(--c-suc-tx);">Auto-integrated token</td></tr>
+          <tr><td style="color:var(--ts);padding:7px 0;border-bottom:0.5px solid var(--border);">Patient experience</td><td style="text-align:right;color:var(--c-suc-tx);">Sit anywhere, get SMS</td></tr>
+          <tr><td style="color:var(--ts);padding:7px 0;border-bottom:0.5px solid var(--border);">Admin visibility</td><td style="text-align:right;color:var(--c-suc-tx);">Live AI dashboard</td></tr>
+          <tr><td style="color:var(--ts);padding:7px 0;">Govt oversight</td><td style="text-align:right;color:var(--c-suc-tx);">Province analytics</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="g4" style="margin-bottom:18px;">
+      <div class="card" style="text-align:center;">
+        <i class="ti ti-qrcode" style="font-size:24px;color:var(--c-info-tx);" aria-hidden="true"></i>
+        <p style="font-weight:500;margin:8px 0 3px;font-size:14px;">Smart tokens</p>
+        <p style="color:var(--ts);font-size:12px;">QR, SMS, kiosk check-in</p>
+      </div>
+      <div class="card" style="text-align:center;">
+        <i class="ti ti-bolt" style="font-size:24px;color:var(--c-warn-tx);" aria-hidden="true"></i>
+        <p style="font-weight:500;margin:8px 0 3px;font-size:14px;">Real-time flow</p>
+        <p style="color:var(--ts);font-size:12px;">WebSocket queue engine</p>
+      </div>
+      <div class="card" style="text-align:center;">
+        <i class="ti ti-brain" style="font-size:24px;color:var(--c-suc-tx);" aria-hidden="true"></i>
+        <p style="font-weight:500;margin:8px 0 3px;font-size:14px;">AI prediction</p>
+        <p style="color:var(--ts);font-size:12px;">Random Forest, ±5 min MAE</p>
+      </div>
+      <div class="card" style="text-align:center;">
+        <i class="ti ti-chart-bar" style="font-size:24px;color:var(--c-err-tx);" aria-hidden="true"></i>
+        <p style="font-weight:500;margin:8px 0 3px;font-size:14px;">Gov analytics</p>
+        <p style="color:var(--ts);font-size:12px;">Province benchmarking</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <p style="font-size:12px;color:var(--ts);font-weight:500;margin-bottom:10px;letter-spacing:0.5px;">TECH STACK</p>
+      <div style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:14px;">
+        <span class="pill">Next.js 15</span><span class="pill">Flutter</span><span class="pill">FastAPI</span><span class="pill">PostgreSQL</span>
+        <span class="pill">Redis</span><span class="pill">WebSockets</span><span class="pill">Docker / Kubernetes</span>
+        <span class="pill">eSewa / Khalti</span><span class="pill">Sparrow SMS</span><span class="pill">HL7 FHIR</span><span class="pill">AWS</span>
+      </div>
+      <hr class="sep" style="margin:10px 0;">
+      <p style="font-size:12px;color:var(--ts);">From research: India Scan &amp; Share achieved 87% wait reduction across 16,939 facilities · Nepal: 85.1% smartphone penetration · DPG Alliance eligible · CAGR 8.24%</p>
+    </div>
+  </section>
+
+  <!-- ══ VIEW 2: PATIENT PORTAL ══ -->
+  <section id="view-patient" class="view" role="tabpanel" aria-labelledby="tab-patient">
+
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:8px;">
+      <div>
+        <p style="font-size:13px;color:var(--ts);">Sat, 6 Jun 2026 · Seti Provincial Hospital</p>
+        <h2 style="margin-top:4px;font-size:20px;">Welcome, Santosh Bhandari</h2>
+      </div>
+      <span class="badge" style="background:var(--c-suc-bg);color:var(--c-suc-tx);">
+        <i class="ti ti-check" aria-hidden="true"></i> Checked in
+      </span>
+    </div>
+
+    <div class="g2" style="align-items:start;">
+
+      <!-- Token card -->
+      <div class="card" style="border-color:var(--c-info-bd);">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;">
+          <div>
+            <p style="font-size:12px;color:var(--ts);margin-bottom:3px;">Your token</p>
+            <p class="mono" style="font-size:44px;font-weight:500;color:var(--c-info-tx);line-height:1;">A-051</p>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <div style="width:8px;height:8px;border-radius:50%;background:var(--teal);" id="live-dot"></div>
+            <span style="font-size:12px;color:var(--c-suc-tx);font-weight:500;">LIVE</span>
+          </div>
+        </div>
+
+        <div class="g2" style="margin-bottom:18px;">
+          <div style="background:var(--s2);border-radius:var(--r-md);padding:12px;">
+            <p style="font-size:11px;color:var(--ts);margin-bottom:3px;">Now serving</p>
+            <p class="mono" style="font-size:20px;font-weight:500;" id="pt-serving">A-045</p>
+          </div>
+          <div style="background:var(--s2);border-radius:var(--r-md);padding:12px;">
+            <p style="font-size:11px;color:var(--ts);margin-bottom:3px;">Before you</p>
+            <p class="mono" style="font-size:20px;font-weight:500;color:var(--c-info-tx);" id="pt-qpos">6</p>
+          </div>
+        </div>
+
+        <div style="margin-bottom:16px;">
+          <div style="display:flex;justify-content:space-between;margin-bottom:7px;">
+            <span style="font-size:13px;color:var(--ts);">Estimated wait</span>
+            <span class="mono" style="font-size:16px;font-weight:500;" id="pt-wait">24 min</span>
+          </div>
+          <div class="load-track">
+            <div class="load-fill" id="pt-bar" style="width:60%;background:var(--teal);"></div>
+          </div>
+        </div>
+
+        <div style="background:var(--s2);border-radius:var(--r-md);padding:11px;font-size:13px;color:var(--ts);">
+          <i class="ti ti-device-mobile" aria-hidden="true"></i>
+          SMS active · +977 98-XXXXXXXX
+        </div>
+      </div>
+
+      <!-- Journey + notifications -->
+      <div class="card">
+        <p style="font-size:13px;font-weight:500;margin-bottom:14px;">Today's journey</p>
+
+        <div class="j-step j-done">
+          <div class="j-dot-wrap"><div class="j-circle"><i class="ti ti-check" style="font-size:11px;" aria-hidden="true"></i></div><div class="j-line" style="background:var(--c-suc-bd);"></div></div>
+          <div class="j-content"><p style="font-size:13px;font-weight:500;">Registration</p><p style="font-size:12px;color:var(--ts);">9:14 AM</p></div>
+        </div>
+        <div class="j-step j-active">
+          <div class="j-dot-wrap"><div class="j-circle">●</div><div class="j-line"></div></div>
+          <div class="j-content"><p style="font-size:13px;font-weight:500;">Doctor (OPD)</p><p style="font-size:12px;color:var(--ts);">Now</p></div>
+        </div>
+        <div class="j-step">
+          <div class="j-dot-wrap"><div class="j-circle" style="color:var(--tt);">○</div><div class="j-line"></div></div>
+          <div class="j-content"><p style="font-size:13px;color:var(--ts);">Laboratory</p><p style="font-size:12px;color:var(--ts);">~11:00 AM</p></div>
+        </div>
+        <div class="j-step">
+          <div class="j-dot-wrap"><div class="j-circle" style="color:var(--tt);">○</div><div class="j-line"></div></div>
+          <div class="j-content"><p style="font-size:13px;color:var(--ts);">Billing</p><p style="font-size:12px;color:var(--ts);">~11:45 AM</p></div>
+        </div>
+        <div class="j-step">
+          <div class="j-dot-wrap"><div class="j-circle" style="color:var(--tt);">○</div></div>
+          <div class="j-content" style="padding-bottom:0;"><p style="font-size:13px;color:var(--ts);">Pharmacy</p><p style="font-size:12px;color:var(--ts);">~12:00 PM</p></div>
+        </div>
+
+        <hr class="sep">
+        <p style="font-size:12px;font-weight:500;color:var(--ts);margin-bottom:10px;">Recent notifications</p>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <div class="notif"><div class="notif-dot" style="background:var(--teal);"></div><div><p style="font-size:13px;">Token A-051 registered successfully</p><p style="font-size:11px;color:var(--ts);">9:14 AM</p></div></div>
+          <div class="notif"><div class="notif-dot" style="background:var(--blue);"></div><div><p style="font-size:13px;">Registration complete — proceed to OPD</p><p style="font-size:11px;color:var(--ts);">9:16 AM</p></div></div>
+          <div class="notif"><div class="notif-dot" style="background:var(--blue);"></div><div><p style="font-size:13px;" id="pt-notif">6 patients before you · Dr. Sharma</p><p style="font-size:11px;color:var(--ts);">10:02 AM</p></div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ VIEW 3: DOCTOR DASHBOARD ══ -->
+  <section id="view-doctor" class="view" role="tabpanel" aria-labelledby="tab-doctor">
+
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:10px;">
+      <div>
+        <p style="font-size:13px;color:var(--ts);">OPD · General Medicine · Room 3</p>
+        <h2 style="margin-top:4px;font-size:20px;">Dr. Rajesh Sharma, MBBS</h2>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <div class="metric" style="text-align:center;min-width:72px;"><p style="font-size:11px;color:var(--ts);margin-bottom:3px;">Seen today</p><p class="mono" style="font-size:22px;font-weight:500;color:var(--c-suc-tx);">24</p></div>
+        <div class="metric" style="text-align:center;min-width:72px;"><p style="font-size:11px;color:var(--ts);margin-bottom:3px;">Avg/patient</p><p class="mono" style="font-size:22px;font-weight:500;color:var(--c-info-tx);">8 min</p></div>
+        <div class="metric" style="text-align:center;min-width:72px;"><p style="font-size:11px;color:var(--ts);margin-bottom:3px;">Efficiency</p><p class="mono" style="font-size:22px;font-weight:500;color:var(--c-warn-tx);">92%</p></div>
+      </div>
+    </div>
+
+    <div class="g2" style="align-items:start;">
+      <div>
+        <!-- Consulting card -->
+        <div class="card" style="border-color:var(--c-suc-bd);margin-bottom:12px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+            <div style="display:flex;align-items:center;gap:6px;">
+              <div style="width:7px;height:7px;border-radius:50%;background:var(--teal);"></div>
+              <span style="font-size:12px;font-weight:500;color:var(--c-suc-tx);">Consulting now</span>
+            </div>
+            <span class="mono" style="font-size:18px;font-weight:500;" id="dr-timer">8:07</span>
+          </div>
+          <p class="mono" style="font-size:26px;font-weight:500;color:var(--c-info-tx);margin-bottom:3px;">A-051</p>
+          <p style="font-size:16px;font-weight:500;margin-bottom:3px;">Santosh Bhandari</p>
+          <p style="font-size:13px;color:var(--ts);margin-bottom:12px;">Age 34 · Male · General OPD</p>
+          <div style="background:var(--s2);border-radius:var(--r-md);padding:11px;font-size:13px;color:var(--ts);margin-bottom:14px;">Chief complaint: Fever, headache (3 days)</div>
+          <div style="display:flex;gap:10px;">
+            <button onclick="this.textContent='✓ Done!'" style="flex:1;padding:10px;background:var(--c-suc-bg);color:var(--c-suc-tx);border:0.5px solid var(--c-suc-bd);border-radius:var(--r-md);font-size:13px;font-weight:500;cursor:pointer;">
+              <i class="ti ti-check" aria-hidden="true"></i> Complete
+            </button>
+            <button style="flex:1;padding:10px;background:transparent;color:var(--ts);border:0.5px solid var(--border);border-radius:var(--r-md);font-size:13px;cursor:pointer;">Skip</button>
+          </div>
+        </div>
+        <!-- Next patient -->
+        <div class="card" style="border-color:var(--c-info-bd);">
+          <p style="font-size:12px;font-weight:500;color:var(--c-info-tx);margin-bottom:10px;">Next patient</p>
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <div>
+              <p class="mono" style="font-size:18px;font-weight:500;color:var(--c-info-tx);margin-bottom:2px;">A-052</p>
+              <p style="font-size:14px;font-weight:500;margin-bottom:2px;">Biraj Thapa</p>
+              <p style="font-size:12px;color:var(--ts);">Age 34 · General · ~2 min</p>
+            </div>
+            <button onclick="this.textContent='Calling…'" style="padding:9px 18px;background:var(--c-info-bg);color:var(--c-info-tx);border:0.5px solid var(--c-info-bd);border-radius:var(--r-md);font-size:13px;font-weight:500;cursor:pointer;">Call in</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Queue list -->
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;margin-bottom:12px;">
+          <p style="font-size:13px;font-weight:500;" id="dr-qcount">Queue (23 waiting)</p>
+          <span style="font-size:12px;color:var(--c-suc-tx);">● live</span>
+        </div>
+        <div id="dr-qlist"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ VIEW 4: HOSPITAL ADMIN ══ -->
+  <section id="view-admin" class="view" role="tabpanel" aria-labelledby="tab-admin">
+
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:8px;">
+      <div>
+        <p style="font-size:13px;color:var(--ts);">Hospital operations center</p>
+        <h2 style="margin-top:4px;font-size:20px;">Seti Provincial Hospital</h2>
+      </div>
+      <span class="badge" style="background:var(--c-suc-bg);color:var(--c-suc-tx);">
+        <i class="ti ti-check" aria-hidden="true"></i> All systems operational
+      </span>
+    </div>
+
+    <div class="g4" style="margin-bottom:18px;">
+      <div class="metric"><p style="font-size:12px;color:var(--ts);margin-bottom:3px;"><i class="ti ti-users" style="font-size:13px;" aria-hidden="true"></i> In hospital</p><p class="mono" style="font-size:26px;font-weight:500;" id="adm-in">57</p></div>
+      <div class="metric"><p style="font-size:12px;color:var(--ts);margin-bottom:3px;"><i class="ti ti-clock" style="font-size:13px;" aria-hidden="true"></i> Avg wait</p><p class="mono" style="font-size:26px;font-weight:500;color:var(--c-warn-tx);" id="adm-wait">42 min</p></div>
+      <div class="metric"><p style="font-size:12px;color:var(--ts);margin-bottom:3px;"><i class="ti ti-check" style="font-size:13px;" aria-hidden="true"></i> Served today</p><p class="mono" style="font-size:26px;font-weight:500;color:var(--c-suc-tx);" id="adm-served">312</p></div>
+      <div class="metric"><p style="font-size:12px;color:var(--ts);margin-bottom:3px;"><i class="ti ti-trending-up" style="font-size:13px;" aria-hidden="true"></i> Peak load</p><p class="mono" style="font-size:26px;font-weight:500;color:var(--c-err-tx);" id="adm-peak">78%</p></div>
+    </div>
+
+    <div class="card" style="margin-bottom:18px;">
+      <p style="font-size:13px;font-weight:500;margin-bottom:12px;">Department load</p>
+      <div id="adm-depts"></div>
+    </div>
+
+    <div class="g2" style="align-items:start;">
+      <div class="card">
+        <p style="font-size:13px;font-weight:500;margin-bottom:4px;">Patient volume — today</p>
+        <div style="display:flex;gap:16px;margin-bottom:10px;font-size:12px;color:var(--ts);">
+          <span><span style="display:inline-block;width:10px;height:10px;background:#1D9E75;border-radius:2px;margin-right:4px;"></span>Patients</span>
+          <span style="display:flex;align-items:center;gap:4px;">
+            <svg width="12" height="10" aria-hidden="true"><line x1="0" y1="5" x2="12" y2="5" stroke="#378ADD" stroke-width="1.5" stroke-dasharray="3,2"/></svg>
+            Wait (min)
+          </span>
+        </div>
+        <div style="position:relative;width:100%;height:180px;">
+          <canvas id="adm-chart" role="img" aria-label="Line chart: hourly patient volume peaks at 156 patients at 11 AM. Wait time peaks at 85 minutes.">Peak 156 patients at 11 AM, 85-min wait.</canvas>
+        </div>
+      </div>
+      <div class="card">
+        <p style="font-size:13px;font-weight:500;margin-bottom:12px;">Active alerts</p>
+        <div class="alert alert-warn"><i class="ti ti-alert-triangle" style="color:var(--c-warn-tx);font-size:16px;flex-shrink:0;margin-top:1px;" aria-hidden="true"></i><div><p style="font-size:13px;font-weight:500;color:var(--c-warn-tx);">OPD load at 78%</p><p style="font-size:12px;color:var(--ts);">Consider opening Counter 4</p></div></div>
+        <div class="alert alert-warn"><i class="ti ti-alert-triangle" style="color:var(--c-warn-tx);font-size:16px;flex-shrink:0;margin-top:1px;" aria-hidden="true"></i><div><p style="font-size:13px;font-weight:500;color:var(--c-warn-tx);">Lab avg wait: 45 min</p><p style="font-size:12px;color:var(--ts);">Exceeds 30-min target benchmark</p></div></div>
+        <div class="alert alert-info"><i class="ti ti-info-circle" style="color:var(--c-info-tx);font-size:16px;flex-shrink:0;margin-top:1px;" aria-hidden="true"></i><div><p style="font-size:13px;font-weight:500;color:var(--c-info-tx);">Radiology backlog: 6 pending</p><p style="font-size:12px;color:var(--ts);">Schedule additional session</p></div></div>
+        <div class="alert alert-suc" style="margin-bottom:0;"><i class="ti ti-check" style="color:var(--c-suc-tx);font-size:16px;flex-shrink:0;margin-top:1px;" aria-hidden="true"></i><div><p style="font-size:13px;font-weight:500;color:var(--c-suc-tx);">AI model: nominal</p><p style="font-size:12px;color:var(--ts);">Predictions within ±5 min MAE</p></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ VIEW 5: GOVERNMENT / PROVINCE ══ -->
+  <section id="view-gov" class="view" role="tabpanel" aria-labelledby="tab-gov">
+
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:10px;">
+      <div>
+        <p style="font-size:13px;color:var(--ts);">Ministry of Health — Provincial analytics</p>
+        <h2 style="margin-top:4px;font-size:20px;">Sudurpashchim Province</h2>
+      </div>
+      <div style="display:flex;gap:6px;">
+        <button class="tab sel" style="font-size:12px;padding:5px 11px;">Today</button>
+        <button class="tab" style="font-size:12px;padding:5px 11px;">7 days</button>
+        <button class="tab" style="font-size:12px;padding:5px 11px;">30 days</button>
+      </div>
+    </div>
+
+    <div class="g4" style="margin-bottom:18px;">
+      <div class="metric"><p style="font-size:12px;color:var(--ts);margin-bottom:3px;">Hospitals online</p><p class="mono" style="font-size:26px;font-weight:500;color:var(--c-suc-tx);">5 / 7</p><p style="font-size:11px;color:var(--tt);margin-top:2px;">2 not yet onboarded</p></div>
+      <div class="metric"><p style="font-size:12px;color:var(--ts);margin-bottom:3px;">Province avg wait</p><p class="mono" style="font-size:26px;font-weight:500;color:var(--c-warn-tx);">54 min</p><p style="font-size:11px;color:var(--c-suc-tx);margin-top:2px;"><i class="ti ti-arrow-down" aria-hidden="true"></i> 8 min vs last week</p></div>
+      <div class="metric"><p style="font-size:12px;color:var(--ts);margin-bottom:3px;">Patients today</p><p class="mono" style="font-size:26px;font-weight:500;color:var(--c-info-tx);">2,847</p><p style="font-size:11px;color:var(--tt);margin-top:2px;">All hospitals combined</p></div>
+      <div class="metric"><p style="font-size:12px;color:var(--ts);margin-bottom:3px;">Avg satisfaction</p><p class="mono" style="font-size:26px;font-weight:500;">3.6 / 5</p><p style="font-size:11px;color:var(--c-suc-tx);margin-top:2px;"><i class="ti ti-arrow-up" aria-hidden="true"></i> +0.3 vs last month</p></div>
+    </div>
+
+    <div class="card" style="margin-bottom:18px;">
+      <p style="font-size:13px;font-weight:500;margin-bottom:4px;">Hospital wait times (minutes)</p>
+      <div style="display:flex;gap:16px;margin-bottom:10px;font-size:12px;color:var(--ts);">
+        <span><span style="display:inline-block;width:10px;height:10px;background:#1D9E75;border-radius:2px;margin-right:4px;"></span>Under 45 min</span>
+        <span><span style="display:inline-block;width:10px;height:10px;background:#EF9F27;border-radius:2px;margin-right:4px;"></span>45–60 min</span>
+        <span><span style="display:inline-block;width:10px;height:10px;background:#E24B4A;border-radius:2px;margin-right:4px;"></span>Over 60 min</span>
+      </div>
+      <div style="position:relative;width:100%;height:260px;">
+        <canvas id="gov-chart" role="img" aria-label="Horizontal bar chart: Gandaki 38 min, Seti 42 min, Koshi 49 min, Bagmati 55 min, Madhesh 62 min, Karnali 68 min, Lumbini 71 min.">Hospital wait times from best to worst: Gandaki Regional 38, Seti Provincial 42, Koshi Teaching 49, Bagmati Medical 55, Madhesh Central 62, Karnali Provincial 68, Lumbini Federal 71 minutes.</canvas>
+      </div>
+    </div>
+
+    <div class="card">
+      <p style="font-size:13px;font-weight:500;margin-bottom:12px;">Hospital leaderboard</p>
+      <table style="width:100%;font-size:13px;table-layout:fixed;">
+        <thead><tr>
+          <th style="text-align:left;color:var(--ts);font-weight:500;padding:0 0 9px;border-bottom:0.5px solid var(--border);width:42%;">Hospital</th>
+          <th style="text-align:right;color:var(--ts);font-weight:500;padding:0 0 9px;border-bottom:0.5px solid var(--border);">Wait</th>
+          <th style="text-align:right;color:var(--ts);font-weight:500;padding:0 0 9px;border-bottom:0.5px solid var(--border);">Rating</th>
+          <th style="text-align:right;color:var(--ts);font-weight:500;padding:0 0 9px;border-bottom:0.5px solid var(--border);">Volume</th>
+        </tr></thead>
+        <tbody id="gov-table"></tbody>
+      </table>
+    </div>
+  </section>
+
+</main>
+
+<!-- ════════════ SCRIPTS ════════════ -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+/* ── Data ── */
+const HOSPITALS = [
+  { name:'Gandaki Regional',   wait:38, sat:4.1, vol:289 },
+  { name:'Seti Provincial',    wait:42, sat:3.8, vol:312 },
+  { name:'Koshi Teaching',     wait:49, sat:3.7, vol:389 },
+  { name:'Bagmati Medical',    wait:55, sat:3.5, vol:456 },
+  { name:'Madhesh Central',    wait:62, sat:3.3, vol:223 },
+  { name:'Karnali Provincial', wait:68, sat:3.2, vol:198 },
+  { name:'Lumbini Federal',    wait:71, sat:3.0, vol:167 },
+];
+const HOURLY = [
+  {t:'8AM',p:45,w:35},{t:'9AM',p:89,w:52},{t:'10AM',p:132,w:78},
+  {t:'11AM',p:156,w:85},{t:'12PM',p:98,w:45},{t:'1PM',p:67,w:28},
+  {t:'2PM',p:112,w:62},{t:'3PM',p:143,w:72},{t:'4PM',p:119,w:58},{t:'5PM',p:78,w:32},
+];
+const DEPTS_INIT = [
+  { id:'opd',   name:'OPD / Registration', load:78, waiting:23, color:'#1D9E75' },
+  { id:'lab',   name:'Laboratory',         load:65, waiting:15, color:'#378ADD' },
+  { id:'pharm', name:'Pharmacy',           load:45, waiting:8,  color:'#EF9F27' },
+  { id:'bill',  name:'Billing',            load:30, waiting:5,  color:'#639922' },
+  { id:'radio', name:'Radiology',          load:55, waiting:6,  color:'#E24B4A' },
+];
+const QUEUE_PTS = [
+  { token:'A-051', name:'Santosh Bhandari', age:34, type:'General',   s:'consulting'          },
+  { token:'A-052', name:'Biraj Thapa',      age:34, type:'General',   s:'next'                },
+  { token:'A-053', name:'Sita Kumari',      age:67, type:'Senior',    s:'waiting', priority:true },
+  { token:'A-054', name:'Mohan Oli',        age:28, type:'General',   s:'waiting'             },
+  { token:'A-055', name:'Kamla Devi',       age:45, type:'General',   s:'waiting'             },
+  { token:'A-056', name:'Rajan BK',         age:12, type:'Pediatric', s:'waiting'             },
+  { token:'A-057', name:'Pushpa Tharu',     age:38, type:'General',   s:'waiting'             },
+];
+
+/* ── State ── */
+let qPos = 6, waitMin = 24, servN = 45;
+let totalServed = 312, avgWait = 42, consT = 487;
+let depts = DEPTS_INIT.map(d => ({ ...d }));
+let admChart = null, govChart = null;
+
+/* ── Tab switching ── */
+const VIEWS = ['overview','patient','doctor','admin','gov'];
+function show(id) {
+  VIEWS.forEach(v => {
+    const el = document.getElementById('view-' + v);
+    const tb = document.getElementById('tab-' + v);
+    if (el) el.classList.remove('active');
+    if (tb) { tb.classList.remove('sel'); tb.setAttribute('aria-selected','false'); }
+  });
+  const el = document.getElementById('view-' + id);
+  const tb = document.getElementById('tab-' + id);
+  if (el) el.classList.add('active');
+  if (tb) { tb.classList.add('sel'); tb.setAttribute('aria-selected','true'); }
+  if (id === 'admin' && !admChart) setTimeout(initAdmChart, 60);
+  if (id === 'gov'   && !govChart) setTimeout(initGovChart, 60);
+}
+
+/* ── Render: doctor queue list ── */
+function renderQList() {
+  const el = document.getElementById('dr-qlist');
+  if (!el) return;
+  el.innerHTML = QUEUE_PTS.map((p, i) => {
+    const dotColor = p.s==='consulting' ? '#1D9E75' : p.s==='next' ? '#378ADD' : 'var(--border-md)';
+    const op = p.s==='consulting' ? 1 : p.s==='next' ? 0.9 : 0.65;
+    const badge = p.priority ? `<span style="font-size:11px;background:var(--c-warn-bg);color:var(--c-warn-tx);padding:1px 5px;border-radius:3px;margin-left:5px;">priority</span>` : '';
+    return `<div class="q-row" style="border-bottom:${i<QUEUE_PTS.length-1?'0.5px solid var(--border)':'none'};opacity:${op};">
+      <div class="q-dot" style="background:${dotColor};"></div>
+      <span class="mono" style="font-size:12px;color:var(--ts);width:44px;flex-shrink:0;">${p.token}</span>
+      <div style="flex:1;min-width:0;">
+        <p style="font-size:13px;font-weight:${p.s!=='waiting'?'500':'400'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.name}${badge}</p>
+        <p style="font-size:11px;color:var(--ts);">${p.type} · Age ${p.age}</p>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ── Render: admin departments ── */
+function renderDepts() {
+  const el = document.getElementById('adm-depts');
+  if (!el) return;
+  el.innerHTML = depts.map(d => {
+    const lc = d.load > 80 ? '#E24B4A' : d.load > 60 ? '#EF9F27' : '#1D9E75';
+    return `<div class="dept-row">
+      <span style="font-size:13px;">${d.name.split('/')[0].trim()}</span>
+      <div class="load-track"><div class="load-fill" style="width:${Math.round(d.load)}%;background:${lc};"></div></div>
+      <span class="mono" style="font-size:13px;text-align:right;color:${lc};">${Math.round(d.load)}%</span>
+      <span style="font-size:12px;color:var(--ts);text-align:right;">${d.waiting} wait</span>
+    </div>`;
+  }).join('');
+}
+
+/* ── Render: government hospital table ── */
+function renderGovTable() {
+  const el = document.getElementById('gov-table');
+  if (!el) return;
+  el.innerHTML = HOSPITALS.map((h, i) => {
+    const wc = h.wait < 45 ? 'var(--c-suc-tx)' : h.wait < 60 ? 'var(--c-warn-tx)' : 'var(--c-err-tx)';
+    const sc = h.sat >= 4 ? 'var(--c-suc-tx)' : h.sat >= 3.5 ? 'var(--c-warn-tx)' : 'var(--c-err-tx)';
+    const bb = i < HOSPITALS.length - 1 ? '0.5px solid var(--border)' : 'none';
+    return `<tr>
+      <td style="padding:8px 0;border-bottom:${bb};font-size:13px;"><span style="font-size:11px;color:var(--tt);margin-right:8px;">${i+1}</span>${h.name}</td>
+      <td style="padding:8px 0;border-bottom:${bb};text-align:right;font-family:var(--mono);font-size:13px;color:${wc};">${h.wait} min</td>
+      <td style="padding:8px 0;border-bottom:${bb};text-align:right;font-size:13px;color:${sc};">${h.sat.toFixed(1)} ★</td>
+      <td style="padding:8px 0;border-bottom:${bb};text-align:right;font-family:var(--mono);font-size:13px;color:var(--ts);">${h.vol}</td>
+    </tr>`;
+  }).join('');
+}
+
+/* ── Charts ── */
+function initAdmChart() {
+  const ctx = document.getElementById('adm-chart');
+  if (!ctx || admChart) return;
+  admChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: HOURLY.map(h => h.t),
+      datasets: [
+        { label:'Patients', data:HOURLY.map(h=>h.p), borderColor:'#1D9E75', backgroundColor:'rgba(29,158,117,0.1)', borderWidth:2, fill:true, tension:0.4, pointRadius:3, pointBackgroundColor:'#1D9E75' },
+        { label:'Wait (min)', data:HOURLY.map(h=>h.w), borderColor:'#378ADD', backgroundColor:'rgba(55,138,221,0.07)', borderWidth:2, borderDash:[5,4], fill:true, tension:0.4, pointRadius:3, pointBackgroundColor:'#378ADD', pointStyle:'triangle' },
+      ]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ display:false } },
+      scales:{
+        x:{ grid:{ color:'rgba(128,128,128,0.1)' }, ticks:{ font:{ size:11 } } },
+        y:{ grid:{ color:'rgba(128,128,128,0.1)' }, ticks:{ font:{ size:11 } } },
+      }
+    }
+  });
+}
+
+function initGovChart() {
+  const ctx = document.getElementById('gov-chart');
+  if (!ctx || govChart) return;
+  govChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: HOSPITALS.map(h => h.name),
+      datasets: [{
+        label:'Wait time (min)',
+        data: HOSPITALS.map(h => h.wait),
+        backgroundColor: HOSPITALS.map(h => h.wait<45?'rgba(29,158,117,0.85)':h.wait<60?'rgba(239,159,39,0.85)':'rgba(226,75,74,0.85)'),
+        borderRadius:4, borderSkipped:false,
+      }]
+    },
+    options: {
+      indexAxis:'y', responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ display:false } },
+      scales:{
+        x:{ grid:{ color:'rgba(128,128,128,0.1)' }, ticks:{ font:{ size:11 } }, max:90 },
+        y:{ grid:{ display:false }, ticks:{ font:{ size:11 }, autoSkip:false } },
+      }
+    }
+  });
+}
+
+/* ── Live Simulation (every 3.5 sec) ── */
+setInterval(() => {
+  servN    = Math.min(servN + 1, 50);
+  qPos     = Math.max(1, qPos - 1);
+  waitMin  = Math.max(3, waitMin - 4);
+  totalServed += Math.floor(Math.random() * 4);
+  avgWait  = Math.max(20, Math.min(80, avgWait + (Math.random() - 0.5) * 6));
+  depts    = depts.map(d => ({
+    ...d,
+    load:    Math.min(95, Math.max(15, d.load    + (Math.random() - 0.5) * 10)),
+    waiting: Math.max(0,               d.waiting + Math.floor((Math.random()-0.5)*4)),
+  }));
+
+  const set = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+
+  set('pt-serving', 'A-0' + servN);
+  set('pt-qpos',    qPos);
+  set('pt-wait',    waitMin + ' min');
+  set('pt-notif',   qPos <= 2 ? 'Your turn is next — proceed to Room 3' : qPos + ' patients before you · Dr. Sharma');
+  set('ov-total',   totalServed);
+  set('adm-in',     depts.reduce((a,d) => a + d.waiting, 0) + 45);
+  set('adm-wait',   Math.round(avgWait) + ' min');
+  set('adm-served', totalServed);
+  set('adm-peak',   Math.round(Math.max(...depts.map(d => d.load))) + '%');
+  set('dr-qcount',  'Queue (' + depts[0].waiting + ' waiting)');
+
+  const bar = document.getElementById('pt-bar');
+  if (bar) bar.style.width = Math.max(5, 100 - (waitMin / 60) * 100) + '%';
+
+  renderDepts();
+}, 3500);
+
+/* ── Consultation timer (every 1 sec) ── */
+setInterval(() => {
+  consT++;
+  const e = document.getElementById('dr-timer');
+  if (e) e.textContent = Math.floor(consT/60) + ':' + String(consT%60).padStart(2,'0');
+}, 1000);
+
+/* ── Init ── */
+renderQList();
+renderDepts();
+renderGovTable();
+</script>
+</body>
+</html>
