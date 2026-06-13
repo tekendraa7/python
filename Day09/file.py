@@ -1,4 +1,4 @@
-f = open('hello.txt', 'w')
+f = open('hello.txt', 'a')
 
 f.write("Hello i am tekendra.")
 
