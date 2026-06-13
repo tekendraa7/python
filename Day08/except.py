@@ -6,4 +6,7 @@ try:
 except ZeroDivisionError:
     print("Sorry you cannot divide by 0 ")
 
+finally :
+    print("This will run in any situation. ")
+
 print ("Ok I have done the division ")
